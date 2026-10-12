@@ -1,0 +1,255 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.146'
+    id 'idea'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+sourceSets.main.resources {
+    srcDir('src/generated/resources')
+    exclude("**/*.bbmodel")
+    exclude("src/generated/**/.cache")
+}
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            jvmArguments.addAll(
+                    '-Xms2G',
+                    '-Xmx4G',
+                    '-XX:+UseG1GC',
+                    '-XX:+UnlockExperimentalVMOptions',
+                    '-XX:G1NewSizePercent=20',
+                    '-XX:G1ReservePercent=20',
+                    '-XX:MaxGCPauseMillis=50',
+                    '-XX:G1HeapRegionSize=32M',
+                    '-XX:+AlwaysPreTouch',
+                    '-XX:+DisableExplicitGC',
+                    '-Dfile.encoding=UTF-8'
+            )
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            jvmArguments.addAll('-Xms2G', '-Xmx4G', '-XX:+UseG1GC')
+        }
+
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', ''
+            systemProperty 'neoforge.enabledGameTestNamespaces', ''
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+// NeoForge-only jars from Modrinth CDN. Do not use Maven version names: they often resolve Fabric.
+// Sodium Extra is omitted: in Gradle userdev JarJar it reports "sodium is not installed".
+def runtimeModUrls = [
+        'https://cdn.modrinth.com/data/AANobbMI/versions/uMOpc5uV/sodium-neoforge-0.8.13%2Bmc1.21.1.jar',
+        'https://cdn.modrinth.com/data/gvQqBUqZ/versions/DDUrRVCA/lithium-neoforge-0.15.4%2Bmc1.21.1.jar',
+        'https://cdn.modrinth.com/data/uXXizFIs/versions/x7kQWVju/ferritecore-7.0.3-neoforge.jar',
+        'https://cdn.modrinth.com/data/nmDcB62a/versions/5HLHxQ2F/modernfix-neoforge-5.27.24%2Bmc1.21.1.jar',
+        'https://cdn.modrinth.com/data/5ZwdcRci/versions/xcQYt0Uy/ImmediatelyFast-NeoForge-1.6.13%2B1.21.1.jar',
+        'https://cdn.modrinth.com/data/NNAgCjsB/versions/5zRIon6w/entityculling-neoforge-1.10.5-mc1.21.1.jar',
+        'https://cdn.modrinth.com/data/KuNKN7d2/versions/nJBE6tif/noisium-neoforge-2.3.0%2Bmc1.21-1.21.1.jar',
+        'https://cdn.modrinth.com/data/2ecVyZ49/versions/kL32PN9Q/Ksyxis-1.4.3.jar',
+        'https://cdn.modrinth.com/data/LQ3K71Q1/versions/T238FZpQ/dynamic-fps-3.11.4%2Bminecraft-1.21.0-neoforge.jar',
+        'https://cdn.modrinth.com/data/9s6osm5g/versions/izKINKFg/cloth-config-15.0.140-neoforge.jar',
+        'https://cdn.modrinth.com/data/51shyZVL/versions/5M4T2FfG/moreculling-neoforge-1.21.1-1.0.10.jar',
+        'https://cdn.modrinth.com/data/Ps1zyz6x/versions/j10HNoNf/ScalableLux-0.1.0.1%2Bneoforge.1cb1e91-all.jar',
+        'https://cdn.modrinth.com/data/Wnxd13zP/versions/jo7lDoK4/Clumps-neoforge-1.21.1-19.0.0.1.jar',
+        'https://cdn.modrinth.com/data/4WWQxlQP/versions/6N9hXiRa/servercore-neoforge-1.5.19%2B1.21.1.jar',
+        'https://cdn.modrinth.com/data/r0v8vy1s/versions/PCNyL6v4/alternate_current-mc1.21-1.9.0.jar',
+        'https://cdn.modrinth.com/data/9mtu0sUO/versions/gRe07TZL/fast-ip-ping-v1.0.11-mc1.21.1-neoforge.jar',
+        'https://cdn.modrinth.com/data/fRiHVvU7/versions/5sIPA1To/emi-1.1.24%2B1.21.1%2Bneoforge.jar',
+        'https://cdn.modrinth.com/data/u6dRKJwZ/versions/BBfxXwba/jei-1.21.1-neoforge-19.54.0.429.jar',
+        'https://cdn.modrinth.com/data/vvuO3ImH/versions/c8YhNFSr/curios-neoforge-9.2.3%2B1.21.1.jar',
+        'https://cdn.modrinth.com/data/wvMc8AJt/versions/n2ynBeOK/lightmanscurrency-1.21-2.3.0.5.jar',
+        'https://cdn.modrinth.com/data/sk9knFPE/versions/SqkDvOLG/rhino-2101.2.8-build.91.jar',
+        'https://cdn.modrinth.com/data/umyGl7zF/versions/THIGFPwf/kubejs-neoforge-2101.7.2-build.377.jar',
+        'https://cdn.modrinth.com/data/LNytGWDc/versions/n7NADxiG/create-1.21.1-6.0.9.jar',
+        'https://cdn.modrinth.com/data/T38eAZQC/versions/1qmcLagN/kubejs-create-neoforge-2101.3.1-build.18.jar',
+        'https://cdn.modrinth.com/data/5A34Stj8/versions/BqhDf7W8/ponderjs-neoforge-1.21.1-2.4.0.jar',
+]
+
+def seedDevEnvironment = tasks.register('seedDevEnvironment') {
+    def optionsSource = layout.projectDirectory.file('dev/options.txt')
+    def optionsTarget = layout.projectDirectory.file('run/options.txt')
+    def modsDir = layout.projectDirectory.dir('run/mods')
+    inputs.file(optionsSource)
+    inputs.property('modUrls', runtimeModUrls)
+    outputs.file(optionsTarget)
+    outputs.dir(modsDir)
+    doLast {
+        def sourceFile = optionsSource.asFile
+        def targetFile = optionsTarget.asFile
+        targetFile.parentFile.mkdirs()
+        if (!targetFile.exists()) {
+            targetFile.bytes = sourceFile.bytes
+        }
+
+        def dir = modsDir.asFile
+        dir.mkdirs()
+        runtimeModUrls.each { String url ->
+            def encodedName = url.substring(url.lastIndexOf('/') + 1)
+            def name = java.net.URLDecoder.decode(encodedName, 'UTF-8')
+            def dest = new File(dir, name)
+            if (!dest.exists()) {
+                logger.lifecycle("Downloading {}", name)
+                dest.withOutputStream { out ->
+                    def conn = java.net.URI.create(url).toURL().openConnection()
+                    conn.setRequestProperty('User-Agent', 'mcpied-dev/1.0')
+                    conn.inputStream.withStream { inp -> out << inp }
+                }
+            }
+        }
+    }
+}
+
+tasks.named('runClient').configure { task ->
+    task.dependsOn seedDevEnvironment
+    def lastWorld = objects.newInstance(LastPlayedWorldArgs)
+    lastWorld.savesDir.convention(layout.projectDirectory.dir('run/saves'))
+    lastWorld.worldOverride.convention(providers.gradleProperty('world').orElse('test'))
+    task.argumentProviders.add(lastWorld)
+}
+tasks.named('runServer').configure { dependsOn seedDevEnvironment }
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            lightmans_currency_version: lightmans_currency_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
+dependencies {
+    // Optional at runtime. Version IDs, not names: names on Modrinth Maven can resolve the Fabric jar.
+    compileOnly "maven.modrinth:wvMc8AJt:${lightmans_currency_version_id}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+abstract class LastPlayedWorldArgs implements org.gradle.process.CommandLineArgumentProvider {
+    @Internal
+    abstract DirectoryProperty getSavesDir()
+
+    @Optional
+    @Input
+    abstract Property<String> getWorldOverride()
+
+    @Override
+    Iterable<String> asArguments() {
+        if (worldOverride.present) {
+            def name = worldOverride.get().trim()
+            if (name.isEmpty() || name.equalsIgnoreCase('none')) {
+                return []
+            }
+            def worldDir = new File(savesDir.get().asFile, name)
+            if (!worldDir.isDirectory() || !new File(worldDir, 'level.dat').exists()) {
+                return []
+            }
+            return ['--quickPlaySingleplayer', name]
+        }
+
+        def dir = savesDir.get().asFile
+        if (!dir.exists()) {
+            return []
+        }
+
+        def last = dir.listFiles()?.findAll { File candidate ->
+            candidate.directory && new File(candidate, 'level.dat').exists()
+        }?.max { it.lastModified() }
+
+        if (last == null) {
+            return []
+        }
+        return ['--quickPlaySingleplayer', last.name]
+    }
+}

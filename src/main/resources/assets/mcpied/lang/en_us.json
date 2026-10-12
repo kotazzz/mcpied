@@ -1,0 +1,4 @@
+{
+  "commands.mcpied.test.success": "Hello World",
+  "mcpied.mcp.started": "MCPied MCP listening on %s"
+}
